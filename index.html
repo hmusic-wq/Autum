@@ -1,1 +1,274 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>電子署名たいけんラボ ｜ 情報Ⅰ</title>
+  <meta name="description" content="公開鍵暗号方式とハッシュ関数で、改ざんとなりすましを見破るしくみを体験できる授業用アプリ">
 
+  <!-- Tailwind CSS（CDN）：レイアウト・余白・色などのユーティリティに使用 -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- 丸ゴシック体（親しみやすさ用）。読み込めない場合は style.css の代替フォントが使われる -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=M+PLUS+Rounded+1c:wght@400;500;700;800&display=swap" rel="stylesheet">
+  <!-- このアプリ独自のスタイル -->
+  <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+  <!-- ================= ヘッダー ================= -->
+  <header class="text-center px-4 pt-10 pb-6">
+    <p class="inline-block bg-white border-[3px] border-[#1f2a44] rounded-full px-4 py-1 text-sm font-bold">
+      情報Ⅰ　情報セキュリティ
+    </p>
+    <h1 class="mt-4 text-3xl sm:text-5xl font-extrabold leading-tight">
+      電子署名<span class="whitespace-nowrap">たいけんラボ</span>
+    </h1>
+    <p class="mt-3 max-w-2xl mx-auto text-base sm:text-lg font-medium leading-relaxed">
+      届いたメッセージは、<b>ほんとうにAさんから？</b>　途中で<b>書き換えられていない？</b><br class="hidden sm:inline">
+      実験しながら、その確かめ方を見つけよう。
+    </p>
+  </header>
+
+  <main class="max-w-5xl mx-auto px-4 pb-16">
+
+    <!-- ================= 登場人物 ================= -->
+    <section aria-label="登場人物" class="grid gap-3 sm:grid-cols-3">
+      <div class="cast">
+        <div class="cast-face" aria-hidden="true">👦</div>
+        <div>
+          <h2 class="font-extrabold">Aさん（本人）</h2>
+          <p class="text-sm leading-relaxed">
+            メッセージを送る人。<span class="key-chip private">🔑 秘密鍵</span>は自分だけが持ち、
+            <span class="key-chip public">🔓 公開鍵</span>はみんなに公開している。
+          </p>
+        </div>
+      </div>
+      <div class="cast">
+        <div class="cast-face" aria-hidden="true">🥷</div>
+        <div>
+          <h2 class="font-extrabold">Cさん（攻撃者）</h2>
+          <p class="text-sm leading-relaxed">
+            Aさんになりすましたい人。持っているのは自分の<span class="key-chip private">🔑 秘密鍵</span>だけで、Aさんの秘密鍵は知らない。
+          </p>
+        </div>
+      </div>
+      <div class="cast">
+        <div class="cast-face" aria-hidden="true">📱</div>
+        <div>
+          <h2 class="font-extrabold">あなた（受信者）</h2>
+          <p class="text-sm leading-relaxed">
+            メッセージを受け取る人。Aさんの<span class="key-chip public">🔓 公開鍵</span>を使って、本物かどうかを確かめる。
+          </p>
+        </div>
+      </div>
+    </section>
+
+    <!-- ================= ミッション（自動でチェックが入る） ================= -->
+    <section aria-label="ミッション" class="mission-box mt-5">
+      <h2 class="font-extrabold mb-2">🎯 ミッション：3つの結果を全部出してみよう</h2>
+      <ul class="grid gap-2 sm:grid-cols-3 text-sm font-medium">
+        <li data-mission="ok" class="mission"><span class="m-check" aria-hidden="true">⬜</span><span>Aさんの鍵で送って、<b>成功</b>を出す</span></li>
+        <li data-mission="tamper" class="mission"><span class="m-check" aria-hidden="true">⬜</span><span>本文を書き換えて、<b>改ざん</b>を見つける</span></li>
+        <li data-mission="spoof" class="mission"><span class="m-check" aria-hidden="true">⬜</span><span>Cさんの鍵で送って、<b>なりすまし</b>を見つける</span></li>
+      </ul>
+    </section>
+
+    <!-- ================= ステップ① 送信側 ================= -->
+    <section id="step1" class="card mt-8" aria-labelledby="step1-title">
+      <div class="step-head">
+        <span class="step-num bg-pink" aria-hidden="true">1</span>
+        <div>
+          <h2 id="step1-title" class="step-title">送信側：電子署名をつくる</h2>
+          <p class="step-sub">Aさんのスマホの中で起きていること</p>
+        </div>
+      </div>
+
+      <div class="grid gap-5 md:grid-cols-2">
+        <!-- メッセージ入力 -->
+        <div>
+          <label for="msgInput" class="field-label">✉️ メッセージ</label>
+          <textarea id="msgInput" class="input" rows="3" maxlength="120">明日15時に図書室集合</textarea>
+          <p class="text-xs mt-1 text-slate-600">1文字変えると、下のハッシュ値がどう変わるか見てみよう。</p>
+        </div>
+
+        <!-- 鍵の選択 -->
+        <fieldset>
+          <legend class="field-label">🔑 署名につかう秘密鍵を選ぶ</legend>
+          <div class="grid gap-2">
+            <label class="key-option">
+              <input type="radio" name="signKey" value="A" checked class="sr-only">
+              <span class="key-badge private" aria-hidden="true">🔑</span>
+              <span>
+                <b>Aさん（本人）の秘密鍵</b>
+                <small class="block text-xs text-slate-600">ほんもののAさんとして署名する</small>
+              </span>
+            </label>
+            <label class="key-option">
+              <input type="radio" name="signKey" value="C" class="sr-only">
+              <span class="key-badge private" aria-hidden="true">🔑</span>
+              <span>
+                <b>Cさん（攻撃者）の秘密鍵</b>
+                <small class="block text-xs text-slate-600">Cさんが「Aさんのふり」をして送る</small>
+              </span>
+            </label>
+          </div>
+        </fieldset>
+      </div>
+
+      <!-- 処理の可視化（上から下へ流れる） -->
+      <div class="mt-6">
+        <div class="flow-block">
+          <div class="flow-label">✉️ メッセージ</div>
+          <div id="flowMsg" class="flow-msg"></div>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" class="arrow-svg"><path d="M12 3v15m0 0-6-6m6 6 6-6"/></svg>
+          <span class="flow-chip">ハッシュ関数（SHA-256）で短く要約</span>
+        </div>
+
+        <div class="flow-block">
+          <div class="flow-label">🧬 ハッシュ値（メッセージの指紋）</div>
+          <div id="hashOut" class="hexbox mono" aria-live="polite"></div>
+          <p class="text-xs mt-1 text-slate-600">
+            <mark class="legend-mark">黄色</mark> は、直前から変わった文字。メッセージが少し違うだけで、指紋はまるで別物になる。
+          </p>
+        </div>
+
+        <div class="flow-arrow" aria-hidden="true">
+          <svg viewBox="0 0 24 24" class="arrow-svg"><path d="M12 3v15m0 0-6-6m6 6 6-6"/></svg>
+          <span id="encChip" class="flow-chip flow-chip-red">🔑 Aさんの秘密鍵で暗号化</span>
+        </div>
+
+        <div class="flow-block">
+          <div class="flow-label">🖋️ 電子署名（暗号化されたハッシュ値）</div>
+          <div id="sigOut" class="hexbox mono sig" aria-live="polite"></div>
+        </div>
+      </div>
+
+      <div class="mt-6 flex flex-wrap items-center gap-3">
+        <button id="sendBtn" type="button" class="btn btn-yellow">📨 送信する</button>
+        <p id="sendHint" class="text-sm font-medium text-slate-700"></p>
+      </div>
+    </section>
+
+    <!-- ステップ間のつなぎ（送信アニメーション） -->
+    <div class="connector" aria-hidden="true">
+      <span id="envelope" class="envelope">📨</span>
+      <svg viewBox="0 0 24 24" class="arrow-svg big"><path d="M12 3v15m0 0-6-6m6 6 6-6"/></svg>
+    </div>
+
+    <!-- ================= ステップ② 通信路 ================= -->
+    <section id="step2" class="card relative" aria-labelledby="step2-title">
+      <div class="step-head">
+        <span class="step-num bg-amber" aria-hidden="true">2</span>
+        <div>
+          <h2 id="step2-title" class="step-title">通信路：ネットのとちゅう（改ざんゾーン）</h2>
+          <p class="step-sub">誰かがこっそり本文を書き換えるかもしれない場所</p>
+        </div>
+      </div>
+
+      <div class="grid gap-5 md:grid-cols-2">
+        <div>
+          <label for="tamperInput" class="field-label">✉️ とどくメッセージ（書き換えてみよう）</label>
+          <textarea id="tamperInput" class="input" rows="3" maxlength="120" disabled></textarea>
+          <div class="mt-2 flex flex-wrap gap-2">
+            <button id="btnTamperSample" type="button" class="btn btn-sub" disabled>✏️ 数字を書き換える</button>
+            <button id="btnRestore" type="button" class="btn btn-sub" disabled>↩️ 元にもどす</button>
+          </div>
+        </div>
+
+        <div>
+          <div class="field-label">🖋️ とどく電子署名（書き換えられない）</div>
+          <div id="recvSig" class="hexbox mono sig"></div>
+          <p class="text-xs mt-1 text-slate-600">署名は本文とセットで届く。</p>
+        </div>
+      </div>
+
+      <div class="diff-panel mt-5">
+        <div class="flex flex-wrap items-center gap-2 mb-1">
+          <span class="font-bold text-sm">送ったときとの違い</span>
+          <span id="diffChip" class="diff-chip">まだ送信していません</span>
+        </div>
+        <div id="diffView" class="diff-view">―</div>
+      </div>
+
+      <div id="lock2" class="lock">
+        <p>①で「📨 送信する」を押すと<br>ここが使えるようになるよ</p>
+      </div>
+    </section>
+
+    <div class="connector" aria-hidden="true">
+      <svg viewBox="0 0 24 24" class="arrow-svg big"><path d="M12 3v15m0 0-6-6m6 6 6-6"/></svg>
+    </div>
+
+    <!-- ================= ステップ③ 受信側 ================= -->
+    <section id="step3" class="card relative" aria-labelledby="step3-title">
+      <div class="step-head">
+        <span class="step-num bg-sky" aria-hidden="true">3</span>
+        <div>
+          <h2 id="step3-title" class="step-title">受信側：本物かどうかを検証する</h2>
+          <p class="step-sub">2つのルートで計算して、答え合わせをする</p>
+        </div>
+      </div>
+
+      <button id="verifyBtn" type="button" class="btn btn-green" disabled>🔍 検証する</button>
+
+      <div id="verifyArea" class="mt-5" aria-live="polite">
+        <p class="placeholder">「検証する」を押すと、ルートAとルートBの計算結果がここにならびます。</p>
+      </div>
+
+      <div id="lock3" class="lock">
+        <p>①で「📨 送信する」を押すと<br>ここが使えるようになるよ</p>
+      </div>
+    </section>
+
+    <!-- ================= まとめ・考えてみよう ================= -->
+    <section class="mt-10 grid gap-4 md:grid-cols-2">
+      <details class="note" open>
+        <summary>📘 しくみのまとめ</summary>
+        <ul class="mt-2 space-y-2 text-sm leading-relaxed">
+          <li><b>ハッシュ関数</b>：メッセージから「指紋」を作る。1文字でも変わると指紋はまったく別物になるので、<b>改ざん</b>に気づける。</li>
+          <li><b>秘密鍵で暗号化（署名）</b>：秘密鍵の持ち主だけが作れる。だから「その人が作った」証明になり、<b>なりすまし</b>を防げる。</li>
+          <li><b>公開鍵で復号（検証）</b>：公開鍵は誰でも使える。復号できてハッシュ値1と2が一致すれば、<b>本人＋改ざんなし</b>。</li>
+        </ul>
+        <p class="mt-3 text-xs text-slate-600 leading-relaxed">
+          ※ このアプリの鍵は、しくみを体験するための簡易モデルです。実際の電子署名では、RSAなどの数学的な計算で秘密鍵と公開鍵が対になっています。
+        </p>
+      </details>
+
+      <div class="note">
+        <h2 class="font-extrabold">💭 考えてみよう</h2>
+        <ol class="mt-2 list-decimal pl-5 space-y-2 text-sm leading-relaxed">
+          <li>Cさんが本文を書き換えて、<b>Cさんの鍵で新しく署名し直して</b>送ったら、受信者にはどう見える？</li>
+          <li>Aさんの<b>公開鍵</b>が全員に知られていても、安全なのはなぜ？</li>
+          <li>受信者が「Aさんの公開鍵」だと思っていた鍵が、実はCさんのものだったら？（→ 公開鍵をどう信用する？）</li>
+        </ol>
+      </div>
+    </section>
+
+    <div class="mt-8 text-center">
+      <button id="resetBtn" type="button" class="btn btn-sub">🔄 実験をリセットする</button>
+    </div>
+  </main>
+
+  <footer class="text-center text-xs text-slate-600 pb-8 px-4">
+    情報Ⅰ 授業用教材　電子署名たいけんラボ
+  </footer>
+
+  <!-- ================= 判定結果ダイアログ ================= -->
+  <div id="modal" class="modal" hidden>
+    <div id="modalCard" class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle" aria-describedby="modalDesc" tabindex="-1">
+      <div id="modalIcon" class="modal-icon" aria-hidden="true"></div>
+      <h3 id="modalTitle" class="modal-title"></h3>
+      <p id="modalDesc" class="modal-desc"></p>
+      <button id="modalClose" type="button" class="btn btn-white">とじる</button>
+    </div>
+  </div>
+
+  <!-- アプリ本体のJavaScript -->
+  <script src="script.js"></script>
+</body>
+</html>

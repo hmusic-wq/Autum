@@ -1,1 +1,473 @@
+/* ==========================================================
+   電子署名たいけんラボ  style.css
+   レイアウトの大枠は Tailwind（CDN）、ここでは部品の見た目を定義する。
+   配色の考え方：
+     赤   … 秘密鍵（持ち主だけが使える）
+     青   … 公開鍵（みんなが使える）
+     黄   … 「変わった場所」のハイライト
+     緑/赤 … 検証の成功/警告
+   ========================================================== */
 
+:root {
+  --ink: #1f2a44;          /* 文字・輪郭線（濃い紺） */
+  --paper: #ffffff;
+  --bg: #e6f3ff;           /* 背景の水色 */
+  --private: #e11d48;      /* 秘密鍵の赤 */
+  --private-soft: #ffe4e9;
+  --public: #2563eb;       /* 公開鍵の青 */
+  --public-soft: #dbeafe;
+  --mark: #facc15;         /* ハイライトの黄色 */
+  --ok: #16a34a;
+  --ok-soft: #dcfce7;
+  --ng: #dc2626;
+  --ng-soft: #fee2e2;
+  --term: #14203a;         /* ハッシュ値表示ボックスの背景 */
+}
+
+html { scroll-behavior: smooth; }
+
+body {
+  margin: 0;
+  color: var(--ink);
+  font-family: "M PLUS Rounded 1c", "Hiragino Maru Gothic ProN", "Hiragino Sans",
+               "Yu Gothic UI", "Meiryo", sans-serif;
+  background-color: var(--bg);
+  background-image:
+    radial-gradient(#c3e0fb 2px, transparent 2px),
+    radial-gradient(#ffe0a3 2px, transparent 2px);
+  background-size: 32px 32px;
+  background-position: 0 0, 16px 16px;
+  line-height: 1.7;
+}
+
+/* キーボード操作でも今どこにいるか見えるように */
+:focus-visible {
+  outline: 4px solid var(--mark);
+  outline-offset: 2px;
+}
+
+/* ハッシュ値・署名は等幅フォントで、文字位置をそろえる */
+.mono {
+  font-family: "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
+               "Courier New", monospace;
+}
+
+/* ---------- カード（各ステップの枠） ---------- */
+.card {
+  position: relative;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 1.5rem;
+  padding: 1.25rem;
+  box-shadow: 0 6px 0 var(--ink);
+}
+@media (min-width: 640px) {
+  .card { padding: 1.75rem; }
+}
+
+/* ---------- ステップ見出し ---------- */
+.step-head {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-bottom: 1.25rem;
+}
+.step-num {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  color: var(--ink);
+  font-size: 1.5rem;
+  font-weight: 800;
+  box-shadow: 0 3px 0 var(--ink);
+}
+.bg-pink  { background: #f9a8d4; }
+.bg-amber { background: #fcd34d; }
+.bg-sky   { background: #7dd3fc; }
+
+.step-title { font-size: 1.25rem; font-weight: 800; line-height: 1.35; }
+@media (min-width: 640px) { .step-title { font-size: 1.5rem; } }
+.step-sub { font-size: 0.875rem; color: #475569; }
+
+/* ---------- 登場人物カード ---------- */
+.cast {
+  display: flex;
+  gap: 0.75rem;
+  align-items: flex-start;
+  background: var(--paper);
+  border: 3px solid var(--ink);
+  border-radius: 1.25rem;
+  padding: 0.9rem;
+}
+.cast-face {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  font-size: 1.9rem;
+  background: #fef9c3;
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+}
+
+/* 鍵の種類を示すラベル：赤=秘密鍵、青=公開鍵 */
+.key-chip {
+  display: inline-block;
+  padding: 0 0.5rem;
+  border-radius: 999px;
+  border: 2px solid;
+  font-weight: 700;
+  font-size: 0.8rem;
+  line-height: 1.5;
+  white-space: nowrap;
+}
+.key-chip.private { color: #9f1239; background: var(--private-soft); border-color: var(--private); }
+.key-chip.public  { color: #1e40af; background: var(--public-soft);  border-color: var(--public); }
+
+/* ---------- ミッション ---------- */
+.mission-box {
+  background: #fff;
+  border: 3px dashed var(--ink);
+  border-radius: 1.25rem;
+  padding: 0.9rem 1.1rem;
+}
+.mission {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+  padding: 0.5rem 0.7rem;
+  border-radius: 0.9rem;
+  background: #f1f5f9;
+  border: 2px solid transparent;
+  transition: background 0.2s, border-color 0.2s;
+}
+.mission.done {
+  background: var(--ok-soft);
+  border-color: var(--ok);
+}
+
+/* ---------- フォーム部品 ---------- */
+.field-label {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-weight: 800;
+}
+.input {
+  display: block;
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.7rem 0.9rem;
+  font: inherit;
+  font-size: 1.05rem;
+  color: var(--ink);
+  background: #f8fafc;
+  border: 3px solid #94a3b8;
+  border-radius: 1rem;
+  resize: vertical;
+}
+.input:focus { outline: none; border-color: var(--public); box-shadow: 0 0 0 4px var(--public-soft); }
+.input:disabled { background: #e2e8f0; color: #64748b; cursor: not-allowed; }
+
+/* 鍵の選択肢（ラジオボタンをカード風に） */
+.key-option {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.6rem 0.8rem;
+  background: #fff;
+  border: 3px solid #cbd5e1;
+  border-radius: 1rem;
+  cursor: pointer;
+  transition: border-color 0.15s, background 0.15s;
+}
+.key-option:hover { border-color: var(--private); }
+.key-option:has(input:checked) {
+  border-color: var(--private);
+  background: var(--private-soft);
+  box-shadow: 0 3px 0 var(--private);
+}
+.key-option:has(input:focus-visible) { outline: 4px solid var(--mark); outline-offset: 2px; }
+
+.key-badge {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 2.6rem;
+  height: 2.6rem;
+  font-size: 1.4rem;
+  border-radius: 999px;
+  border: 3px solid;
+}
+.key-badge.private { background: var(--private-soft); border-color: var(--private); }
+.key-badge.public  { background: var(--public-soft);  border-color: var(--public); }
+
+/* ---------- ボタン ---------- */
+.btn {
+  display: inline-block;
+  padding: 0.75rem 1.6rem;
+  font: inherit;
+  font-weight: 800;
+  font-size: 1.1rem;
+  color: var(--ink);
+  border: 3px solid var(--ink);
+  border-radius: 999px;
+  box-shadow: 0 5px 0 var(--ink);
+  cursor: pointer;
+  transition: transform 0.08s, box-shadow 0.08s;
+}
+.btn:active:not(:disabled) { transform: translateY(4px); box-shadow: 0 1px 0 var(--ink); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+.btn-yellow { background: #fde047; }
+.btn-green  { background: #86efac; }
+.btn-white  { background: #fff; }
+.btn-sub {
+  padding: 0.3rem 0.9rem;
+  font-size: 0.9rem;
+  background: #fff;
+  box-shadow: 0 3px 0 var(--ink);
+}
+
+/* ---------- 処理の流れ（上から下へ） ---------- */
+.flow-block {
+  padding: 0.9rem 1rem;
+  background: #f8fafc;
+  border: 3px solid var(--ink);
+  border-radius: 1.1rem;
+}
+.flow-label { margin-bottom: 0.4rem; font-weight: 800; }
+.flow-msg {
+  padding: 0.5rem 0.8rem;
+  min-height: 2.4rem;
+  background: #fff;
+  border: 2px solid #cbd5e1;
+  border-radius: 0.8rem;
+  font-weight: 700;
+  word-break: break-all;
+}
+
+.flow-arrow {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0;
+  flex-wrap: wrap;
+}
+.arrow-svg {
+  width: 2rem;
+  height: 2rem;
+  fill: none;
+  stroke: var(--ink);
+  stroke-width: 3;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.arrow-svg.big { width: 2.6rem; height: 2.6rem; }
+.flow-chip {
+  padding: 0.1rem 0.8rem;
+  font-size: 0.85rem;
+  font-weight: 700;
+  background: #fef9c3;
+  border: 2px dashed #ca8a04;
+  border-radius: 999px;
+}
+.flow-chip-red  { background: var(--private-soft); border-color: var(--private); color: #9f1239; }
+.flow-chip-blue { background: var(--public-soft);  border-color: var(--public);  color: #1e40af; }
+
+/* ---------- ハッシュ値・署名の表示ボックス ---------- */
+.hexbox {
+  min-height: 3rem;
+  padding: 0.7rem 0.9rem;
+  color: #e2e8f0;
+  background: var(--term);
+  border: 3px solid var(--term);
+  border-radius: 0.9rem;
+  font-size: 0.95rem;
+  line-height: 2;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+}
+.hexbox.sig  { color: #fecdd3; }
+.hexbox.bad  { border-color: var(--ng); }
+.hexbox.good { border-color: var(--ok); }
+
+/* 8文字ごとのまとまり（数えやすく、途中で折り返しやすく） */
+.hex-group { display: inline-block; margin-right: 0.7em; }
+.hex-char.diff {
+  color: #111827;
+  background: var(--mark);
+  border-radius: 3px;
+  padding: 0 1px;
+}
+
+.legend-mark { padding: 0 0.4rem; background: var(--mark); border-radius: 4px; color: #111827; }
+
+/* ---------- ステップ間のつなぎ ---------- */
+.connector {
+  position: relative;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  height: 4.2rem;
+}
+.envelope {
+  position: absolute;
+  top: 0;
+  font-size: 1.8rem;
+  opacity: 0;
+}
+.envelope.fly { animation: fly 1s ease-out; }
+
+/* ---------- ロック表示（未送信のとき） ---------- */
+.lock {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  text-align: center;
+  font-weight: 800;
+  border-radius: 1.3rem;
+  background: rgba(230, 243, 255, 0.85);
+  backdrop-filter: blur(3px);
+}
+.lock[hidden] { display: none; }
+
+/* ---------- 改ざん差分の表示 ---------- */
+.diff-panel {
+  padding: 0.8rem 1rem;
+  background: #f8fafc;
+  border: 3px solid #cbd5e1;
+  border-radius: 1rem;
+}
+.diff-view { font-size: 1.05rem; font-weight: 700; word-break: break-all; }
+.diff-mark { background: var(--mark); color: #111827; border-radius: 4px; padding: 0 2px; }
+.diff-chip {
+  padding: 0 0.7rem;
+  font-size: 0.8rem;
+  font-weight: 800;
+  border-radius: 999px;
+  border: 2px solid #94a3b8;
+  background: #fff;
+}
+.diff-chip.same    { border-color: var(--ok); background: var(--ok-soft); color: #166534; }
+.diff-chip.changed { border-color: #d97706; background: #fef3c7; color: #92400e; }
+
+/* ---------- 検証結果（ルートA / ルートB） ---------- */
+.placeholder {
+  padding: 1rem;
+  text-align: center;
+  color: #64748b;
+  border: 3px dashed #cbd5e1;
+  border-radius: 1rem;
+}
+.route {
+  padding: 1rem;
+  border: 3px solid var(--ink);
+  border-radius: 1.1rem;
+  background: #f8fafc;
+}
+.route .flow-block { background: #fff; border-width: 2px; border-color: #cbd5e1; }
+.route-a { border-color: var(--public); }
+.route-b { border-color: var(--public); }
+.route-title {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  padding: 0.1rem 0.9rem;
+  font-weight: 800;
+  color: #fff;
+  background: var(--public);
+  border-radius: 999px;
+}
+.route-note { margin-top: 0.4rem; font-size: 0.85rem; font-weight: 700; }
+.route-note.ng { color: #991b1b; }
+.route-note.ok { color: #166534; }
+
+.compare {
+  margin-top: 1rem;
+  padding: 0.9rem 1rem;
+  text-align: center;
+  font-size: 1.1rem;
+  font-weight: 800;
+  border: 3px solid;
+  border-radius: 1rem;
+}
+.compare.ok { color: #166534; background: var(--ok-soft); border-color: var(--ok); }
+.compare.ng { color: #991b1b; background: var(--ng-soft); border-color: var(--ng); }
+
+/* 検証結果を順番にあらわす */
+.reveal { opacity: 0; animation: fadeUp 0.5s ease forwards; }
+
+/* ---------- まとめ・メモ ---------- */
+.note {
+  padding: 1rem 1.2rem;
+  background: #fff;
+  border: 3px solid var(--ink);
+  border-radius: 1.25rem;
+}
+.note summary { cursor: pointer; font-weight: 800; }
+
+/* ---------- 判定ダイアログ ---------- */
+.modal {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.65);
+}
+.modal[hidden] { display: none; }
+.modal-card {
+  width: 100%;
+  max-width: 32rem;
+  padding: 2rem 1.5rem 1.5rem;
+  text-align: center;
+  border: 4px solid;
+  border-radius: 2rem;
+  box-shadow: 0 8px 0 rgba(15, 23, 42, 0.35);
+  animation: pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1);
+}
+.modal-card:focus { outline: none; }
+.modal-card.success { background: var(--ok-soft); border-color: var(--ok); }
+.modal-card.danger  { background: var(--ng-soft); border-color: var(--ng); animation: pop 0.4s cubic-bezier(0.2, 1.4, 0.4, 1), shake 0.5s 0.4s; }
+.modal-icon { font-size: 4rem; line-height: 1.1; }
+.modal-title { margin-top: 0.5rem; font-size: 1.35rem; font-weight: 800; line-height: 1.5; }
+.modal-card.success .modal-title { color: #166534; }
+.modal-card.danger  .modal-title { color: #991b1b; }
+.modal-desc { margin: 0.8rem 0 1.4rem; font-weight: 500; text-align: left; }
+
+/* ---------- アニメーション ---------- */
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+@keyframes pop {
+  from { opacity: 0; transform: scale(0.7); }
+  to   { opacity: 1; transform: scale(1); }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-8px); }
+  40%, 80% { transform: translateX(8px); }
+}
+@keyframes fly {
+  0%   { opacity: 0; transform: translateY(-1.5rem); }
+  25%  { opacity: 1; }
+  100% { opacity: 0; transform: translateY(3.2rem); }
+}
+
+/* 動きが苦手な人向け：アニメーションを止める */
+@media (prefers-reduced-motion: reduce) {
+  html { scroll-behavior: auto; }
+  *, *::before, *::after { animation: none !important; transition: none !important; }
+  .reveal { opacity: 1; }
+}
